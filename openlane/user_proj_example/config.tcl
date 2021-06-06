@@ -18,8 +18,12 @@ set script_dir [file dirname [file normalize [info script]]]
 set ::env(DESIGN_NAME) user_proj_example
 
 set ::env(VERILOG_FILES) "\
-	$script_dir/../../caravel/verilog/rtl/defines.v \
-	$script_dir/../../verilog/rtl/user_proj_example.v"
+        $script_dir/../../caravel/verilog/rtl/defines.v \
+        $script_dir/../../verilog/rtl/user_project_wrapper.v \
+        $script_dir/../../verilog/rtl/design_2_top.v \
+        $script_dir/../../verilog/rtl/dp_ram_asic.v \
+        $script_dir/../../verilog/rtl/ibex_defines.v "
+
 
 set ::env(CLOCK_PORT) ""
 set ::env(CLOCK_NET) "counter.clk"
