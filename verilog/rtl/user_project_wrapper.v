@@ -84,61 +84,6 @@ module user_project_wrapper #(
 /*--------------------------------------*/
 
 
-design_2_top mprj(
-        .reset(wb_rst_i),
-        .clk(user_clock2),
-        .we_i(1'b1),
-        .irq_id_o(irq_id_o),
-        .irq_id_i(1'd0),
-        .irq_i(1'd0),
-        .irq_ack_o(la_data_out[1]),
-        .debug_req_i(1'd1),
-        .start(1'd1),
-        .cont_2_uart_w_0_read_data_o(cont_2_uart_w_0_read_data_o),
-        .data(32'd0),
-        .address(address),
-        .cont_2_uart_w_0_complete(la_data_out[3]),
-        .start_ibex(1'd1),
-        .eFPGA_operand_a_o(eFPGA_operand_a_o),
-        .eFPGA_operand_b_o(eFPGA_operand_b_o),
-        .eFPGA_result_a_i(32'd0),
-        .eFPGA_result_b_i(32'd0),
-        .eFPGA_result_c_i(32'd0),
-        .uart_recv_error(la_data_out[6]),
-        .eFPGA_write_strobe_o(la_data_out[7]),
-        .eFPGA_fpga_done_i(1'd1),
-        .eFPGA_en_o(la_data_out[8]),
-        .eFPGA_operator_o(eFPGA_operator_o),
-        .eFPGA_delay_o(eFPGA_delay_o) 
-);      
-
-
-wire [11:0] address;
-assign address = 12'd0;
-
-wire [4:0]irq_id_o;
-assign la_data_out[0] = ~irq_id_o;
-
-wire [31:0]cont_2_uart_w_0_read_data_o;
-assign la_data_out[2] = ~cont_2_uart_w_0_read_data_o;
-
-wire [31:0] eFPGA_operand_a_o;
-assign la_data_out[4] = ~eFPGA_operand_a_o;
-
-wire [31:0] eFPGA_operand_b_o;
-assign la_data_out[5] = ~eFPGA_operand_b_o;
-
-wire [1:0] eFPGA_operator_o;
-assign la_data_out[9] = ~eFPGA_operator_o;
-
-wire [3:0] eFPGA_delay_o;
-assign la_data_out[10] = ~eFPGA_delay_o;
-
-
-
-/*
-
-
 user_proj_example mprj (
     `ifdef USE_POWER_PINS
 	.vdda1(vdda1),	// User area 1 3.3V power
@@ -180,7 +125,7 @@ user_proj_example mprj (
     // IRQ
     .irq(user_irq)
 );
-*/
+
 
 endmodule	// user_project_wrapper
 

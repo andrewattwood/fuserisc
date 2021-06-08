@@ -35,9 +35,7 @@
  *-------------------------------------------------------------
  */
 
-module user_proj_example #(
-    parameter BITS = 32
-)(
+module user_proj_example (
 `ifdef USE_POWER_PINS
     inout vdda1,	// User area 1 3.3V supply
     inout vdda2,	// User area 2 3.3V supply
@@ -74,98 +72,65 @@ module user_proj_example #(
     // IRQ
     output [2:0] irq
 );
-    wire clk;
-    wire rst;
 
-    wire [`MPRJ_IO_PADS-1:0] io_in;
-    wire [`MPRJ_IO_PADS-1:0] io_out;
-    wire [`MPRJ_IO_PADS-1:0] io_oeb;
-
-    wire [31:0] rdata; 
-    wire [31:0] wdata;
-    wire [BITS-1:0] count;
-
-    wire valid;
-    wire [3:0] wstrb;
-    wire [31:0] la_write;
-
-    // WB MI A
-    assign valid = wbs_cyc_i && wbs_stb_i; 
-    assign wstrb = wbs_sel_i & {4{wbs_we_i}};
-    assign wbs_dat_o = rdata;
-    assign wdata = wbs_dat_i;
-
-    // IO
-    assign io_out = count;
-    assign io_oeb = {(`MPRJ_IO_PADS-1){rst}};
-
-    // IRQ
-    assign irq = 3'b000;	// Unused
-
-    // LA
-    assign la_data_out = {{(127-BITS){1'b0}}, count};
-    // Assuming LA probes [63:32] are for controlling the count register  
-    assign la_write = ~la_oenb[63:32] & ~{BITS{valid}};
     // Assuming LA probes [65:64] are for controlling the count clk & reset  
-    assign clk = (~la_oenb[64]) ? la_data_in[64]: wb_clk_i;
-    assign rst = (~la_oenb[65]) ? la_data_in[65]: wb_rst_i;
+   // assign clk = (~la_oenb[64]) ? la_data_in[64]: wb_clk_i;
+   // assign rst = (~la_oenb[65]) ? la_data_in[65]: wb_rst_i;
 
-    counter #(
-        .BITS(BITS)
-    ) counter(
-        .clk(clk),
-        .reset(rst),
-        .ready(wbs_ack_o),
-        .valid(valid),
-        .rdata(rdata),
-        .wdata(wbs_dat_i),
-        .wstrb(wstrb),
-        .la_write(la_write),
-        .la_input(la_data_in[63:32]),
-        .count(count)
-    );
+wire [11:0] address;
+assign address = 12'd0;
 
-endmodule
+wire [4:0]irq_id_o;
+assign la_data_out[0] = ~irq_id_o;
 
-module counter #(
-    parameter BITS = 32
-)(
-    input clk,
-    input reset,
-    input valid,
-    input [3:0] wstrb,
-    input [BITS-1:0] wdata,
-    input [BITS-1:0] la_write,
-    input [BITS-1:0] la_input,
-    output ready,
-    output [BITS-1:0] rdata,
-    output [BITS-1:0] count
-);
-    reg ready;
-    reg [BITS-1:0] count;
-    reg [BITS-1:0] rdata;
+wire [31:0]cont_2_uart_w_0_read_data_o;
+assign la_data_out[2] = ~cont_2_uart_w_0_read_data_o;
 
-    always @(posedge clk) begin
-        if (reset) begin
-            count <= 0;
-            ready <= 0;
-        end else begin
-            ready <= 1'b0;
-            if (~|la_write) begin
-                count <= count + 1;
-            end
-            if (valid && !ready) begin
-                ready <= 1'b1;
-                rdata <= count;
-                if (wstrb[0]) count[7:0]   <= wdata[7:0];
-                if (wstrb[1]) count[15:8]  <= wdata[15:8];
-                if (wstrb[2]) count[23:16] <= wdata[23:16];
-                if (wstrb[3]) count[31:24] <= wdata[31:24];
-            end else if (|la_write) begin
-                count <= la_write & la_input;
-            end
-        end
-    end
+wire [31:0] eFPGA_operand_a_o;
+assign la_data_out[4] = ~eFPGA_operand_a_o;
+
+wire [31:0] eFPGA_operand_b_o;
+assign la_data_out[5] = ~eFPGA_operand_b_o;
+
+wire [1:0] eFPGA_operator_o;
+assign la_data_out[9] = ~eFPGA_operator_o;
+
+wire [3:0] eFPGA_delay_o;
+assign la_data_out[10] = ~eFPGA_delay_o;
+
+
+
+
+design_2_top mprdesign_2_top_i(
+        .reset(wb_rst_i),
+        .clk(user_clock2),
+        .we_i(1'b1),
+        .irq_id_o(irq_id_o),
+        .irq_id_i(1'd0),
+        .irq_i(1'd0),
+        .irq_ack_o(la_data_out[1]),
+        .debug_req_i(1'd1),
+        .start(1'd1),
+        .cont_2_uart_w_0_read_data_o(cont_2_uart_w_0_read_data_o),
+        .data(32'd0),
+        .address(address),
+        .cont_2_uart_w_0_complete(la_data_out[3]),
+        .start_ibex(1'd1),
+        .eFPGA_operand_a_o(eFPGA_operand_a_o),
+        .eFPGA_operand_b_o(eFPGA_operand_b_o),
+        .eFPGA_result_a_i(32'd0),
+        .eFPGA_result_b_i(32'd0),
+        .eFPGA_result_c_i(32'd0),
+        .uart_recv_error(la_data_out[6]),
+        .eFPGA_write_strobe_o(la_data_out[7]),
+        .eFPGA_fpga_done_i(1'd1),
+        .eFPGA_en_o(la_data_out[8]),
+        .eFPGA_operator_o(eFPGA_operator_o),
+        .eFPGA_delay_o(eFPGA_delay_o) 
+);      
+
 
 endmodule
+
+
 `default_nettype wire
