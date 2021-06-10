@@ -1,4 +1,53 @@
-module dp_ram_asic (
+
+
+
+// ByteWide Write Enable, - WRITE_FIRST mode template - Vivado recomended
+module dp_ram_asic
+ #(
+    //----------------------------------------------------------------------
+    parameter NUM_COL = 4,
+    parameter COL_WIDTH = 8,
+    parameter ADDR_WIDTH = 8,
+    // Addr Width in bits : 2**ADDR_WIDTH = RAM Depth
+    parameter DATA_WIDTH = NUM_COL*COL_WIDTH // Data Width in bits
+
+    //----------------------------------------------------------------------
+ ) (
+     input clk,
+     input en_a_i,
+     input [NUM_COL-1:0] o_be_a_i,
+     input [ADDR_WIDTH-1:0] addr_a_i,
+     input [DATA_WIDTH-1:0] wdata_a_i,
+     output reg [DATA_WIDTH-1:0] rdata_a_o,
+     input  logic                   we_a_i,
+
+     input en_b_i,
+     input [NUM_COL-1:0] o_be_b_i,
+     input [ADDR_WIDTH-1:0] addr_b_i,
+     input [DATA_WIDTH-1:0] wdata_b_i,
+     output reg [DATA_WIDTH-1:0] rdata_b_o,
+     input  logic                   we_b_i
+
+ );
+
+
+    logic  [NUM_COL-1:0] be_b_i;
+    logic  [NUM_COL-1:0] be_a_i;
+
+   assign  be_b_i = (we_b_i) ? o_be_b_i : 4'b0000;
+
+   assign  be_a_i = (we_a_i) ? o_be_a_i : 4'b0000;
+
+
+ // Core Memory
+ reg [DATA_WIDTH-1:0] ram_block [(2**ADDR_WIDTH)-1:0];
+
+ // Port-A Operation
+
+
+endmodule
+
+/*module dp_ram_asic (
 	clk,
 	en_a_i,
 	o_be_a_i,
@@ -15,7 +64,7 @@ module dp_ram_asic (
 );
 	parameter NUM_COL = 4;
 	parameter COL_WIDTH = 8;
-	parameter ADDR_WIDTH = 10;
+	parameter ADDR_WIDTH = 8;
 	parameter DATA_WIDTH = NUM_COL * COL_WIDTH;
 	input clk;
 	input en_a_i;
@@ -75,3 +124,4 @@ module dp_ram_asic (
 		ram_block[byte_addr] = val;
 	endtask
 endmodule
+*/

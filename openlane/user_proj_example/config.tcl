@@ -25,8 +25,8 @@ set ::env(VERILOG_FILES) "\
         $script_dir/../../verilog/rtl/ibex_defines.v "
 
 
-set ::env(CLOCK_PORT) ""
-set ::env(CLOCK_NET) "counter.clk"
+set ::env(CLOCK_PORT) "clk"
+set ::env(CLOCK_NET) "clk"
 set ::env(CLOCK_PERIOD) "10"
 
 set ::env(FP_SIZING) absolute

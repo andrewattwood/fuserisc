@@ -48,8 +48,10 @@ module user_proj_example (
 `endif
 
     // Wishbone Slave ports (WB MI A)
-    input wb_clk_i,
+ 
+ //   input wb_clk_i,
     input wb_rst_i,
+/*
     input wbs_stb_i,
     input wbs_cyc_i,
     input wbs_we_i,
@@ -61,16 +63,22 @@ module user_proj_example (
 
     // Logic Analyzer Signals
     input  [127:0] la_data_in,
-    output [127:0] la_data_out,
-    input  [127:0] la_oenb,
+*/
+output [10:0] la_data_out,
+
+/*    
+	input  [127:0] la_oenb,
 
     // IOs
     input  [`MPRJ_IO_PADS-1:0] io_in,
-    output [`MPRJ_IO_PADS-1:0] io_out,
-    output [`MPRJ_IO_PADS-1:0] io_oeb,
+
+	    output [`MPRJ_IO_PADS-1:0] io_out,
+		    output [`MPRJ_IO_PADS-1:0] io_oeb,
 
     // IRQ
-    output [2:0] irq
+    output [2:0] irq,
+*/
+	    input clk
 );
 
     // Assuming LA probes [65:64] are for controlling the count clk & reset  
@@ -101,9 +109,9 @@ assign la_data_out[10] = ~eFPGA_delay_o;
 
 
 
-design_2_top mprdesign_2_top_i(
+design_2_top mprj(
         .reset(wb_rst_i),
-        .clk(user_clock2),
+        .clk(clk),
         .we_i(1'b1),
         .irq_id_o(irq_id_o),
         .irq_id_i(1'd0),
