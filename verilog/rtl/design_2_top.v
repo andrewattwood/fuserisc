@@ -1,422 +1,3 @@
-module cont_2_uart (
-	clk_i,
-	rst_i,
-	rx_i,
-	tx_o,
-	address,
-	start,
-	complete,
-	data,
-	we_i,
-	read_data_o
-);
-	input clk_i;
-	input rst_i;
-	input rx_i;
-	output tx_o;
-	input  [12:0] address;
-	input start;
-	output complete;
-	input [31:0] data;
-	input we_i;
-	output [31:0] read_data_o;
-	reg transmit;
-	reg [7:0] send;
-	wire received_o;
-	wire [7:0] rx_byte_o;
-	wire is_receiving_o;
-	wire is_transmitting_o;
-	wire recv_error_o;
-	parameter IDLE = 0;
-	parameter WAIT_CMD_CONFIRM = 1;
-	parameter WAIT_ADDR_CONFIRM = 2;
-	parameter WAIT_ADDR_TAIL_CONFIRM = 3;
-	parameter WRITE_DATA = 4;
-	parameter READ_DATA = 5;
-	parameter PKT_WRITE_CMD_CONFIRM = 8'b01000000;
-	parameter PKT_WRITE_ADR_CONFIRM = 8'b01100000;
-	parameter PKT_READ_CMD_CONFIRM = 8'b10000000;
-	parameter PKT_READ_ADR_CONFIRM = 8'b10000000;
-	parameter PKT_WRITE_CMD = 8'b01000001;
-	parameter PKT_ADR = 8'b01100000;
-	parameter PKT_READ_CMD = 8'b01000010;
-	reg [2:0] UART_STATE;
-	reg trans_txn_ff2;
-	reg trans_txn_ff;
-	always @(posedge clk_i)
-		if (rst_i) begin
-			trans_txn_ff <= 1'b0;
-			trans_txn_ff2 <= 1'b0;
-		end
-		else begin
-			trans_txn_ff <= start;
-			trans_txn_ff2 <= trans_txn_ff;
-		end
-	reg [3:0] idle_count;
-	reg [1:0] data_count;
-	reg [1:0] read_count;
-	always @(posedge clk_i)
-		if (rst_i) begin
-			UART_STATE <= IDLE;
-			complete <= 0;
-			transmit <= 0;
-			idle_count <= 0;
-			send <= 0;
-			data_count <= 0;
-			read_data_o <= 0;
-			read_count <= 0;
-		end
-		else
-			case (UART_STATE)
-				IDLE:
-					if (!trans_txn_ff2 && trans_txn_ff) begin
-						if (we_i == 0)
-							send <= PKT_READ_CMD;
-						else
-							send <= PKT_WRITE_CMD;
-						transmit <= 1;
-						$display("C2U - Send new cmd \n");
-						UART_STATE <= WAIT_CMD_CONFIRM;
-						idle_count <= 0;
-						complete <= 0;
-					end
-					else
-						transmit <= 0;
-				WAIT_CMD_CONFIRM:
-					if (received_o) begin
-						if ((rx_byte_o[7:0] == PKT_WRITE_CMD[7:0]) | (rx_byte_o[7:0] == PKT_READ_CMD[7:0])) begin
-							data_count <= 0;
-							send <= {PKT_ADR[7:5], address[12:8]};
-							transmit <= 1;
-							UART_STATE <= WAIT_ADDR_CONFIRM;
-						end
-						else begin
-							idle_count <= idle_count + 1;
-							if (idle_count == 3'b111)
-								UART_STATE <= IDLE;
-						end
-					end
-					else
-						transmit <= 0;
-				WAIT_ADDR_CONFIRM:
-					if (received_o) begin
-						send <= address[7:0];
-						transmit <= 1;
-						UART_STATE <= WAIT_ADDR_TAIL_CONFIRM;
-					end
-					else begin
-						transmit <= 0;
-						send <= 0;
-					end
-				WAIT_ADDR_TAIL_CONFIRM:
-					if (received_o) begin
-						if (we_i == 1) begin
-							UART_STATE <= WRITE_DATA;
-							send <= data[31:24];
-							data_count <= 2;
-							transmit <= 1;
-						end
-						else begin
-							UART_STATE <= READ_DATA;
-							send <= rx_byte_o;
-							read_count <= 2;
-							transmit <= 1;
-							read_data_o[31:24] <= rx_byte_o;
-							$display("C2U - GOT B1 - ", rx_byte_o);
-						end
-					end
-					else begin
-						transmit <= 0;
-						send <= 0;
-					end
-				WRITE_DATA:
-					if (received_o) begin
-						$display("packet sent cont 2 uart");
-						if (data_count == 2) begin
-							send <= data[23:16];
-							data_count <= 1;
-						end
-						else if (data_count == 1) begin
-							send <= data[15:8];
-							data_count <= 0;
-						end
-						else if (data_count == 0) begin
-							send <= data[7:0];
-							UART_STATE <= IDLE;
-							$display("C2U - data senf last \n");
-							complete <= 1;
-						end
-						else
-							send <= 0;
-						transmit <= 1;
-					end
-					else begin
-						transmit <= 0;
-						send <= 0;
-					end
-				READ_DATA:
-					if (received_o) begin
-						send <= rx_byte_o;
-						if (read_count == 2) begin
-							read_data_o[23:16] <= rx_byte_o;
-							read_count <= 1;
-							$display("C2U - GOT B2 -", rx_byte_o);
-						end
-						else if (read_count == 1) begin
-							read_data_o[15:8] <= rx_byte_o;
-							read_count <= 0;
-							$display("C2U - GOT B3 -", rx_byte_o);
-						end
-						else if (read_count == 0) begin
-							read_data_o[7:0] <= rx_byte_o;
-							UART_STATE <= IDLE;
-							$display("C2U - GOT B4 -", rx_byte_o);
-							complete <= 1;
-						end
-						transmit <= 1;
-					end
-					else begin
-						transmit <= 0;
-						send <= 0;
-					end
-			endcase
-	uart uart_i(
-		.clk(clk_i),
-		.rst(rst_i),
-		.rx(rx_i),
-		.tx(tx_o),
-		.transmit(transmit),
-		.tx_byte(send),
-		.received(received_o),
-		.rx_byte(rx_byte_o),
-		.is_receiving(is_receiving_o),
-		.is_transmitting(is_transmitting_o),
-		.recv_error(recv_error_o)
-	);
-endmodule
-module cont_2_uart_w (
-	clk_i,
-	rst_i,
-	rx_i,
-	tx_o,
-	address,
-	start,
-	complete,
-	data,
-	we_i,
-	read_data_o
-);
-	input wire clk_i;
-	input wire rst_i;
-	input wire rx_i;
-	output wire tx_o;
-	input wire [12:0] address;
-	input wire start;
-	output wire complete;
-	input wire [31:0] data;
-	input wire we_i;
-	output wire [31:0] read_data_o;
-	cont_2_uart cont_2_uart_i(
-		.clk_i(clk_i),
-		.rst_i(rst_i),
-		.rx_i(rx_i),
-		.tx_o(tx_o),
-		.address(address),
-		.start(start),
-		.complete(complete),
-		.data(data),
-		.we_i(we_i),
-		.read_data_o(read_data_o)
-	);
-endmodule
-module design_2_top (
-	reset,
-	clk,
-	we_i,
-	irq_id_o,
-	irq_id_i,
-	irq_i,
-	irq_ack_o,
-	debug_req_i,
-	start,
-	cont_2_uart_w_0_read_data_o,
-	data,
-	address,
-	cont_2_uart_w_0_complete,
-	start_ibex,
-	eFPGA_operand_a_o,
-	eFPGA_operand_b_o,
-	eFPGA_result_a_i,
-	eFPGA_result_b_i,
-	eFPGA_result_c_i,
-	uart_recv_error,
-	eFPGA_write_strobe_o,
-	eFPGA_fpga_done_i,
-	eFPGA_en_o,
-	eFPGA_operator_o,
-	eFPGA_delay_o
-);
-	input reset;
-	input clk;
-	input we_i;
-	output [4:0] irq_id_o;
-	input [4:0] irq_id_i;
-	input irq_i;
-	output irq_ack_o;
-	input debug_req_i;
-	input start;
-	output [31:0] cont_2_uart_w_0_read_data_o;
-	input [31:0] data;
-	input [11:0] address;
-	output cont_2_uart_w_0_complete;
-	input start_ibex;
-	output [31:0] eFPGA_operand_a_o;
-	output [31:0] eFPGA_operand_b_o;
-	input [31:0] eFPGA_result_a_i;
-	input [31:0] eFPGA_result_b_i;
-	input [31:0] eFPGA_result_c_i;
-	input eFPGA_fpga_done_i;
-	output eFPGA_en_o;
-	output [1:0] eFPGA_operator_o;
-	output [3:0] eFPGA_delay_o;
-	output uart_recv_error;
-	output eFPGA_write_strobe_o;
-	wire uart_to_mem_w_0_tx_o;
-	wire cont_2_uart_w_0_tx_o;
-	wire [31:0] ibex_core_w_0_data_addr_o;
-	wire [3:0] ibex_core_w_0_data_be_o;
-	wire ibex_core_w_0_data_req_o;
-	wire [31:0] ibex_core_w_0_data_wdata_o;
-	wire ibex_core_w_0_data_we_o;
-	wire [31:0] ibex_core_w_0_instr_addr_o;
-	wire ibex_core_w_0_instr_req_o;
-	wire ram_w_0_ibex_data_gnt_o;
-	wire [31:0] ram_w_0_ibex_data_rdata_o;
-	wire ram_w_0_ibex_data_rvalid_o;
-	wire ram_w_0_instr_gnt_o;
-	wire [31:0] ram_w_0_instr_rdata_o;
-	wire ram_w_0_instr_rvalid_o;
-	wire ram_w_0_uart_data_gnt_o;
-	wire [31:0] ram_w_0_uart_data_rdata_o;
-	wire ram_w_0_uart_data_rvalid_o;
-	wire [11:0] uart_to_mem_w_0_data_addr_o;
-	wire [3:0] uart_to_mem_w_0_data_be_o;
-	wire uart_to_mem_w_0_data_req_o;
-	wire [31:0] uart_to_mem_w_0_data_wdata_o;
-	wire uart_to_mem_w_0_data_we_o;
-	cont_2_uart cont_2_uart_i(
-		.address(address),
-		.clk_i(clk),
-		.complete(cont_2_uart_w_0_complete),
-		.data(data),
-		.read_data_o(cont_2_uart_w_0_read_data_o),
-		.rst_i(reset),
-		.rx_i(uart_to_mem_w_0_tx_o),
-		.start(start),
-		.tx_o(cont_2_uart_w_0_tx_o),
-		.we_i(we_i)
-	);
-	forte_soc_top forte_soc_top_i(
-		.clk_i(clk),
-		.debug_req_i(debug_req_i),
-		.fetch_enable_i(start_ibex),
-		.irq_ack_o(irq_ack_o),
-		.irq_i(irq_i),
-		.irq_id_i(irq_id_i),
-		.irq_id_o(irq_id_o),
-		.reset(reset),
-		.rx_i(cont_2_uart_w_0_tx_o),
-		.tx_o(uart_to_mem_w_0_tx_o),
-		.eFPGA_operand_a_o(eFPGA_operand_a_o),
-		.eFPGA_operand_b_o(eFPGA_operand_b_o),
-		.eFPGA_result_a_i(eFPGA_result_a_i),
-		.eFPGA_result_b_i(eFPGA_result_b_i),
-		.eFPGA_result_c_i(eFPGA_result_c_i),
-		.uart_recv_error(uart_recv_error),
-		.eFPGA_write_strobe_o(eFPGA_write_strobe_o),
-		.eFPGA_fpga_done_i(eFPGA_fpga_done_i),
-		.eFPGA_en_o(eFPGA_en_o),
-		.eFPGA_operator_o(eFPGA_operator_o),
-		.eFPGA_delay_o(eFPGA_delay_o)
-	);
-endmodule
-module dp_ram (
-	clk,
-	en_a_i,
-	o_be_a_i,
-	addr_a_i,
-	wdata_a_i,
-	rdata_a_o,
-	we_a_i,
-	en_b_i,
-	o_be_b_i,
-	addr_b_i,
-	wdata_b_i,
-	rdata_b_o,
-	we_b_i
-);
-	parameter NUM_COL = 4;
-	parameter COL_WIDTH = 8;
-	parameter ADDR_WIDTH = 8;
-	parameter DATA_WIDTH = NUM_COL * COL_WIDTH;
-	input clk;
-	input en_a_i;
-	input [NUM_COL - 1:0] o_be_a_i;
-	input [ADDR_WIDTH - 1:0] addr_a_i;
-	input [DATA_WIDTH - 1:0] wdata_a_i;
-	output reg [DATA_WIDTH - 1:0] rdata_a_o;
-	input wire we_a_i;
-	input en_b_i;
-	input [NUM_COL - 1:0] o_be_b_i;
-	input [ADDR_WIDTH - 1:0] addr_b_i;
-	input [DATA_WIDTH - 1:0] wdata_b_i;
-	output reg [DATA_WIDTH - 1:0] rdata_b_o;
-	input wire we_b_i;
-	wire [NUM_COL - 1:0] be_b_i;
-	wire [NUM_COL - 1:0] be_a_i;
-	assign be_b_i = (we_b_i ? o_be_b_i : 4'b0000);
-	assign be_a_i = (we_a_i ? o_be_a_i : 4'b0000);
-	reg [DATA_WIDTH - 1:0] ram_block [(2 ** ADDR_WIDTH) - 1:0];
-	generate
-		genvar i;
-		for (i = 0; i < NUM_COL; i = i + 1) always @(posedge clk)
-			if (en_a_i)
-				if (be_a_i[i]) begin
-					ram_block[addr_a_i][i * COL_WIDTH+:COL_WIDTH] <= wdata_a_i[i * COL_WIDTH+:COL_WIDTH];
-					rdata_a_o[i * COL_WIDTH+:COL_WIDTH] <= wdata_a_i[i * COL_WIDTH+:COL_WIDTH];
-				end
-				else
-					rdata_a_o[i * COL_WIDTH+:COL_WIDTH] <= ram_block[addr_a_i][i * COL_WIDTH+:COL_WIDTH];
-	endgenerate
-	generate
-		for (i = 0; i < NUM_COL; i = i + 1) always @(posedge clk)
-			if (en_b_i)
-				if (be_b_i[i]) begin
-					ram_block[addr_b_i][i * COL_WIDTH+:COL_WIDTH] <= wdata_b_i[i * COL_WIDTH+:COL_WIDTH];
-					rdata_b_o[i * COL_WIDTH+:COL_WIDTH] <= wdata_b_i[i * COL_WIDTH+:COL_WIDTH];
-				end
-				else
-					rdata_b_o[i * COL_WIDTH+:COL_WIDTH] <= ram_block[addr_b_i][i * COL_WIDTH+:COL_WIDTH];
-	endgenerate
-	function [31:0] readWord;
-		input integer word_addr;
-		readWord = ram_block[word_addr];
-	endfunction
-	function [7:0] readByte;
-		input integer byte_addr;
-		readByte = ram_block[byte_addr];
-	endfunction
-	task writeWord;
-		input integer addr;
-		input [31:0] val;
-		ram_block[addr] = val;
-	endtask
-	task writeByte;
-		input integer byte_addr;
-		input [7:0] val;
-		ram_block[byte_addr] = val;
-	endtask
-endmodule
 module forte_soc_top (
 	clk_i,
 	debug_req_i,
@@ -426,21 +7,31 @@ module forte_soc_top (
 	irq_id_i,
 	irq_id_o,
 	reset,
-	rx_i,
-	tx_o,
 	eFPGA_operand_a_o,
 	eFPGA_operand_b_o,
 	eFPGA_result_a_i,
 	eFPGA_result_b_i,
 	eFPGA_result_c_i,
-	uart_recv_error,
 	eFPGA_write_strobe_o,
 	eFPGA_fpga_done_i,
 	eFPGA_delay_o,
 	eFPGA_en_o,
-	eFPGA_operator_o
+	eFPGA_operator_o,
+	flexbex_data_addr_o,
+	flexbex_data_be_o,
+	flexbex_data_gnt_i,
+	flexbex_data_rdata_i,
+	flexbex_data_req_o,
+	flexbex_data_rvalid_o,
+	flexbex_data_wdata_o,
+	flexbex_data_we_o,
+	flexbex_instr_addr_o,
+	flexbex_instr_gnt_o,
+	flexbex_instr_rdata_o,
+	flexbex_instr_req_o,
+	flexbex_instr_rvalid_o
 );
-	parameter ADDR_WIDTH = 8;
+	parameter ADDR_WIDTH = 10;
 	input clk_i;
 	input debug_req_i;
 	input fetch_enable_i;
@@ -448,56 +39,30 @@ module forte_soc_top (
 	input irq_i;
 	input [4:0] irq_id_i;
 	output [4:0] irq_id_o;
-	input rx_i;
-	output tx_o;
 	input reset;
 	output [31:0] eFPGA_operand_a_o;
 	output [31:0] eFPGA_operand_b_o;
 	input [31:0] eFPGA_result_a_i;
 	input [31:0] eFPGA_result_b_i;
 	input [31:0] eFPGA_result_c_i;
-	output uart_recv_error;
 	output eFPGA_write_strobe_o;
 	input eFPGA_fpga_done_i;
 	output eFPGA_en_o;
 	output [1:0] eFPGA_operator_o;
 	output [3:0] eFPGA_delay_o;
-	wire [31:0] ibex_core_w_0_data_addr_o;
-	wire [3:0] ibex_core_w_0_data_be_o;
-	wire ibex_core_w_0_data_req_o;
-	wire [31:0] ibex_core_w_0_data_wdata_o;
-	wire ibex_core_w_0_data_we_o;
-	wire [31:0] ibex_core_w_0_instr_addr_o;
-	wire ibex_core_w_0_instr_req_o;
-	wire ram_w_0_ibex_data_gnt_o;
-	wire [31:0] ram_w_0_ibex_data_rdata_o;
-	wire ram_w_0_ibex_data_rvalid_o;
-	wire ram_w_0_instr_gnt_o;
-	wire [31:0] ram_w_0_instr_rdata_o;
-	wire ram_w_0_instr_rvalid_o;
-	wire ram_w_0_uart_data_gnt_o;
-	wire [31:0] ram_w_0_uart_data_rdata_o;
-	wire ram_w_0_uart_data_rvalid_o;
-	wire [ADDR_WIDTH - 1:0] uart_to_mem_w_0_data_addr_o;
-	wire [3:0] uart_to_mem_w_0_data_be_o;
-	wire uart_to_mem_w_0_data_req_o;
-	wire [31:0] uart_to_mem_w_0_data_wdata_o;
-	wire uart_to_mem_w_0_data_we_o;
-	uart_to_mem #(.ADDR_WIDTH(ADDR_WIDTH)) uart_to_mem_i(
-		.clk_i(clk_i),
-		.data_addr_o(uart_to_mem_w_0_data_addr_o),
-		.data_be_o(uart_to_mem_w_0_data_be_o),
-		.data_gnt_i(ram_w_0_uart_data_gnt_o),
-		.data_rdata_i(ram_w_0_uart_data_rdata_o),
-		.data_req_o(uart_to_mem_w_0_data_req_o),
-		.data_rvalid_i(ram_w_0_uart_data_rvalid_o),
-		.data_wdata_o(uart_to_mem_w_0_data_wdata_o),
-		.data_we_o(uart_to_mem_w_0_data_we_o),
-		.rst_i(reset),
-		.rx_i(rx_i),
-		.tx_o(tx_o),
-		.uart_error(uart_recv_error)
-	);
+	output [31:0] flexbex_data_addr_o;
+	output [3:0] flexbex_data_be_o;
+	input flexbex_data_gnt_i;
+	input [31:0] flexbex_data_rdata_i;
+	output flexbex_data_req_o;
+	output flexbex_data_rvalid_o;
+	output [31:0] flexbex_data_wdata_o;
+	output flexbex_data_we_o;
+	output [31:0] flexbex_instr_addr_o;
+	output flexbex_instr_gnt_o;
+	output [31:0] flexbex_instr_rdata_o;
+	output flexbex_instr_req_o;
+	output flexbex_instr_rvalid_o;
 	wire reset_ni;
 	assign reset_ni = ~reset;
 	ibex_core ibex_core_i(
@@ -505,23 +70,23 @@ module forte_soc_top (
 		.clk_i(clk_i),
 		.cluster_id_i(6'd0),
 		.core_id_i(4'd0),
-		.data_addr_o(ibex_core_w_0_data_addr_o),
-		.data_be_o(ibex_core_w_0_data_be_o),
+		.data_addr_o(flexbex_data_addr_o),
+		.data_be_o(flexbex_data_be_o),
 		.data_err_i(1'b0),
-		.data_gnt_i(ram_w_0_ibex_data_gnt_o),
-		.data_rdata_i(ram_w_0_ibex_data_rdata_o),
-		.data_req_o(ibex_core_w_0_data_req_o),
-		.data_rvalid_i(ram_w_0_ibex_data_rvalid_o),
-		.data_wdata_o(ibex_core_w_0_data_wdata_o),
-		.data_we_o(ibex_core_w_0_data_we_o),
+		.data_gnt_i(flexbex_data_gnt_i),
+		.data_rdata_i(flexbex_data_rdata_i),
+		.data_req_o(flexbex_data_req_o),
+		.data_rvalid_i(flexbex_data_rvalid_o),
+		.data_wdata_o(flexbex_data_wdata_o),
+		.data_we_o(flexbex_data_we_o),
 		.debug_req_i(debug_req_i),
 		.ext_perf_counters_i(1'b0),
 		.fetch_enable_i(fetch_enable_i),
-		.instr_addr_o(ibex_core_w_0_instr_addr_o),
-		.instr_gnt_i(ram_w_0_instr_gnt_o),
-		.instr_rdata_i(ram_w_0_instr_rdata_o),
-		.instr_req_o(ibex_core_w_0_instr_req_o),
-		.instr_rvalid_i(ram_w_0_instr_rvalid_o),
+		.instr_addr_o(flexbex_instr_addr_o),
+		.instr_gnt_i(flexbex_instr_gnt_o),
+		.instr_rdata_i(flexbex_instr_rdata_o),
+		.instr_req_o(flexbex_instr_req_o),
+		.instr_rvalid_i(flexbex_instr_rvalid_o),
 		.irq_ack_o(irq_ack_o),
 		.irq_i(irq_i),
 		.irq_id_i(irq_id_i),
@@ -538,30 +103,6 @@ module forte_soc_top (
 		.eFPGA_en_o(eFPGA_en_o),
 		.eFPGA_operator_o(eFPGA_operator_o),
 		.eFPGA_delay_o(eFPGA_delay_o)
-	);
-	ram #(.ADDR_WIDTH(ADDR_WIDTH)) ram_0(
-		.clk(clk_i),
-		.ibex_data_addr_i(ibex_core_w_0_data_addr_o[ADDR_WIDTH - 1:0]),
-		.ibex_data_be_i(ibex_core_w_0_data_be_o),
-		.ibex_data_gnt_o(ram_w_0_ibex_data_gnt_o),
-		.ibex_data_rdata_o(ram_w_0_ibex_data_rdata_o),
-		.ibex_data_req_i(ibex_core_w_0_data_req_o),
-		.ibex_data_rvalid_o(ram_w_0_ibex_data_rvalid_o),
-		.ibex_data_wdata_i(ibex_core_w_0_data_wdata_o),
-		.ibex_data_we_i(ibex_core_w_0_data_we_o),
-		.instr_addr_i(ibex_core_w_0_instr_addr_o[ADDR_WIDTH - 1:0]),
-		.instr_gnt_o(ram_w_0_instr_gnt_o),
-		.instr_rdata_o(ram_w_0_instr_rdata_o),
-		.instr_req_i(ibex_core_w_0_instr_req_o),
-		.instr_rvalid_o(ram_w_0_instr_rvalid_o),
-		.uart_data_addr_i(uart_to_mem_w_0_data_addr_o),
-		.uart_data_be_i(uart_to_mem_w_0_data_be_o),
-		.uart_data_gnt_o(ram_w_0_uart_data_gnt_o),
-		.uart_data_rdata_o(ram_w_0_uart_data_rdata_o),
-		.uart_data_req_i(uart_to_mem_w_0_data_req_o),
-		.uart_data_rvalid_o(ram_w_0_uart_data_rvalid_o),
-		.uart_data_wdata_i(uart_to_mem_w_0_data_wdata_o),
-		.uart_data_we_i(uart_to_mem_w_0_data_we_o)
 	);
 endmodule
 module ibex_alu (
@@ -1493,6 +1034,7 @@ module ibex_core (
 		.regfile_wdata_ex_o(regfile_wdata_ex),
 		.eFPGA_en_i(eFPGA_en),
 		.eFPGA_operator_i(eFPGA_operator),
+		.eFPGA_fpga_done_i(eFPGA_fpga_done_i),
 		.eFPGA_result_a_i(eFPGA_result_a_i),
 		.eFPGA_result_b_i(eFPGA_result_b_i),
 		.eFPGA_result_c_i(eFPGA_result_c_i),
@@ -2435,7 +1977,7 @@ module ibex_eFPGA (
 	result_c_i,
 	delay_i,
 	write_strobe,
-	fpga_done_i
+	efpga_done_i
 );
 	input wire clk;
 	input wire rst_n;
@@ -2448,7 +1990,7 @@ module ibex_eFPGA (
 	input wire [31:0] result_c_i;
 	input wire [3:0] delay_i;
 	output reg write_strobe;
-	input wire fpga_done_i;
+	input wire efpga_done_i;
 	reg [1:0] eFPGA_fsm_r;
 	reg [3:0] count;
 	localparam [1:0] eFINISH = 2;
@@ -2472,7 +2014,7 @@ module ibex_eFPGA (
 				end
 				ePROCESSING: begin
 					count <= count + 1;
-					if (((count == delay_i) & (delay_i != 4'b1111)) | ((delay_i == 4'b1111) & fpga_done_i)) begin
+					if (((count == delay_i) & (delay_i != 4'b1111)) | ((delay_i == 4'b1111) & efpga_done_i)) begin
 						eFPGA_fsm_r <= eFINISH;
 						case (operator_i)
 							2'b00: endresult_o <= result_a_i;
@@ -2615,7 +2157,7 @@ module ibex_ex_block (
 		.result_c_i(eFPGA_result_c_i),
 		.delay_i(eFPGA_delay_i),
 		.write_strobe(eFPGA_write_strobe_o),
-		.fpga_done_i(eFPGA_fpga_done_i)
+		.efpga_done_i(eFPGA_fpga_done_i)
 	);
 	always @(*)
 		case (1'b1)
@@ -4513,487 +4055,4 @@ module prim_clock_gating (
 		if (clk_i == 1'b0)
 			clk_en <= en_i | test_en_i;
 	assign clk_o = clk_i & clk_en;
-endmodule
-module ram (
-	clk,
-	instr_req_i,
-	instr_addr_i,
-	instr_rdata_o,
-	instr_rvalid_o,
-	instr_gnt_o,
-	ibex_data_req_i,
-	ibex_data_addr_i,
-	ibex_data_we_i,
-	ibex_data_be_i,
-	ibex_data_wdata_i,
-	ibex_data_rdata_o,
-	ibex_data_rvalid_o,
-	ibex_data_gnt_o,
-	uart_data_req_i,
-	uart_data_addr_i,
-	uart_data_we_i,
-	uart_data_be_i,
-	uart_data_wdata_i,
-	uart_data_rdata_o,
-	uart_data_rvalid_o,
-	uart_data_gnt_o
-);
-	parameter ADDR_WIDTH = 8;
-	input wire clk;
-	input wire instr_req_i;
-	input wire [ADDR_WIDTH - 1:0] instr_addr_i;
-	output wire [31:0] instr_rdata_o;
-	output reg instr_rvalid_o;
-	output wire instr_gnt_o;
-	input wire ibex_data_req_i;
-	input wire [ADDR_WIDTH - 1:0] ibex_data_addr_i;
-	input wire ibex_data_we_i;
-	input wire [3:0] ibex_data_be_i;
-	input wire [31:0] ibex_data_wdata_i;
-	output wire [31:0] ibex_data_rdata_o;
-	output reg ibex_data_rvalid_o;
-	output wire ibex_data_gnt_o;
-	input wire uart_data_req_i;
-	input wire [ADDR_WIDTH - 1:0] uart_data_addr_i;
-	input wire uart_data_we_i;
-	input wire [3:0] uart_data_be_i;
-	input wire [31:0] uart_data_wdata_i;
-	output wire [31:0] uart_data_rdata_o;
-	output reg uart_data_rvalid_o;
-	output wire uart_data_gnt_o;
-	wire data_req_i;
-	wire [ADDR_WIDTH - 1:0] data_addr_i;
-	wire [31:0] data_wdata_i;
-	wire [31:0] data_rdata_o;
-	wire data_we_i;
-	wire [3:0] data_be_i;
-	assign data_req_i = (uart_data_req_i ? uart_data_req_i : ibex_data_req_i);
-	assign data_addr_i = (uart_data_req_i ? uart_data_addr_i : ibex_data_addr_i);
-	assign data_wdata_i = (uart_data_req_i ? uart_data_wdata_i : ibex_data_wdata_i);
-	assign uart_data_rdata_o = data_rdata_o;
-	assign ibex_data_rdata_o = data_rdata_o;
-	assign data_we_i = (uart_data_req_i ? uart_data_we_i : ibex_data_we_i);
-	assign data_be_i = (uart_data_req_i ? uart_data_be_i : ibex_data_be_i);
-	assign ibex_data_gnt_o = !uart_data_req_i & ibex_data_req_i;
-	assign uart_data_gnt_o = uart_data_req_i;
-	dp_ram_asic #(.ADDR_WIDTH(ADDR_WIDTH)) dp_ram_i(
-		.clk(clk),
-		.en_a_i(instr_req_i),
-		.addr_a_i(instr_addr_i),
-		.wdata_a_i('0),
-		.rdata_a_o(instr_rdata_o),
-		.we_a_i('0),
-		.o_be_a_i(4'b1111),
-		.en_b_i(data_req_i),
-		.addr_b_i(data_addr_i),
-		.wdata_b_i(data_wdata_i),
-		.rdata_b_o(data_rdata_o),
-		.we_b_i(data_we_i),
-		.o_be_b_i(data_be_i)
-	);
-	assign instr_gnt_o = instr_req_i;
-	always @(posedge clk) begin
-		if (uart_data_req_i)
-			uart_data_rvalid_o <= data_req_i;
-		else
-			ibex_data_rvalid_o <= data_req_i;
-		instr_rvalid_o <= instr_req_i;
-	end
-endmodule
-module uart (
-	clk,
-	rst,
-	rx,
-	tx,
-	transmit,
-	tx_byte,
-	received,
-	rx_byte,
-	is_receiving,
-	is_transmitting,
-	recv_error
-);
-	input clk;
-	input rst;
-	input rx;
-	output tx;
-	input transmit;
-	input [7:0] tx_byte;
-	output received;
-	output [7:0] rx_byte;
-	output is_receiving;
-	output is_transmitting;
-	output recv_error;
-	parameter CLOCK_DIVIDE = 109;
-	parameter RX_IDLE = 0;
-	parameter RX_CHECK_START = 1;
-	parameter RX_READ_BITS = 2;
-	parameter RX_CHECK_STOP = 3;
-	parameter RX_DELAY_RESTART = 4;
-	parameter RX_ERROR = 5;
-	parameter RX_RECEIVED = 6;
-	parameter TX_IDLE = 0;
-	parameter TX_SENDING = 1;
-	parameter TX_DELAY_RESTART = 2;
-	reg [10:0] rx_clk_divider = CLOCK_DIVIDE;
-	reg [10:0] tx_clk_divider = CLOCK_DIVIDE;
-	reg [2:0] recv_state = RX_IDLE;
-	reg [5:0] rx_countdown;
-	reg [3:0] rx_bits_remaining;
-	reg [7:0] rx_data;
-	reg tx_out = 1'b1;
-	reg [1:0] tx_state = TX_IDLE;
-	reg [5:0] tx_countdown;
-	reg [3:0] tx_bits_remaining;
-	reg [7:0] tx_data;
-	assign received = recv_state == RX_RECEIVED;
-	assign recv_error = recv_state == RX_ERROR;
-	assign is_receiving = recv_state != RX_IDLE;
-	assign rx_byte = rx_data;
-	assign tx = tx_out;
-	assign is_transmitting = tx_state != TX_IDLE;
-	always @(posedge clk) begin
-		if (rst) begin
-			recv_state = RX_IDLE;
-			tx_state = TX_IDLE;
-		end
-		rx_clk_divider = rx_clk_divider - 1;
-		if (!rx_clk_divider) begin
-			rx_clk_divider = CLOCK_DIVIDE;
-			rx_countdown = rx_countdown - 1;
-		end
-		tx_clk_divider = tx_clk_divider - 1;
-		if (!tx_clk_divider) begin
-			tx_clk_divider = CLOCK_DIVIDE;
-			tx_countdown = tx_countdown - 1;
-		end
-		case (recv_state)
-			RX_IDLE:
-				if (!rx) begin
-					rx_clk_divider = CLOCK_DIVIDE;
-					rx_countdown = 2;
-					recv_state = RX_CHECK_START;
-				end
-			RX_CHECK_START:
-				if (!rx_countdown)
-					if (!rx) begin
-						rx_countdown = 4;
-						rx_bits_remaining = 8;
-						recv_state = RX_READ_BITS;
-					end
-					else
-						recv_state = RX_ERROR;
-			RX_READ_BITS:
-				if (!rx_countdown) begin
-					rx_data = {rx, rx_data[7:1]};
-					rx_countdown = 4;
-					rx_bits_remaining = rx_bits_remaining - 1;
-					recv_state = (rx_bits_remaining ? RX_READ_BITS : RX_CHECK_STOP);
-				end
-			RX_CHECK_STOP:
-				if (!rx_countdown)
-					recv_state = (rx ? RX_RECEIVED : RX_ERROR);
-			RX_DELAY_RESTART: recv_state = (rx_countdown ? RX_DELAY_RESTART : RX_IDLE);
-			RX_ERROR: begin
-				rx_countdown = 8;
-				recv_state = RX_DELAY_RESTART;
-			end
-			RX_RECEIVED: recv_state = RX_IDLE;
-		endcase
-		case (tx_state)
-			TX_IDLE:
-				if (transmit) begin
-					tx_data = tx_byte;
-					tx_clk_divider = CLOCK_DIVIDE;
-					tx_countdown = 4;
-					tx_out = 0;
-					tx_bits_remaining = 8;
-					tx_state = TX_SENDING;
-				end
-			TX_SENDING:
-				if (!tx_countdown)
-					if (tx_bits_remaining) begin
-						tx_bits_remaining = tx_bits_remaining - 1;
-						tx_out = tx_data[0];
-						tx_data = {1'b0, tx_data[7:1]};
-						tx_countdown = 4;
-						tx_state = TX_SENDING;
-					end
-					else begin
-						tx_out = 1;
-						tx_countdown = 8;
-						tx_state = TX_DELAY_RESTART;
-					end
-			TX_DELAY_RESTART: tx_state = (tx_countdown ? TX_DELAY_RESTART : TX_IDLE);
-		endcase
-	end
-endmodule
-module uart_to_mem (
-	clk_i,
-	rst_i,
-	rx_i,
-	tx_o,
-	data_req_o,
-	data_addr_o,
-	data_we_o,
-	data_be_o,
-	data_wdata_o,
-	data_rdata_i,
-	data_rvalid_i,
-	data_gnt_i,
-	uart_error
-);
-	parameter ADDR_WIDTH = 8;
-	input clk_i;
-	input rst_i;
-	input rx_i;
-	output tx_o;
-	output data_req_o;
-	output [ADDR_WIDTH - 1:0] data_addr_o;
-	output  data_we_o;
-	output [3:0] data_be_o;
-	output [31:0] data_wdata_o;
-	input [31:0] data_rdata_i;
-	input data_rvalid_i;
-	input data_gnt_i;
-	output uart_error;
-	assign data_be_o = 4'b1111;
-	wire transmit_i;
-	reg [7:0] tx_byte_i;
-	wire received_o;
-	wire [7:0] rx_byte_o;
-	wire is_receiving_o;
-	wire is_transmitting_o;
-	wire recv_error_o;
-	assign uart_error = recv_error_o;
-	parameter IDLE = 0;
-	parameter WAIT_ADDR_HEAD = 1;
-	parameter WAIT_ADDR_TAIL = 2;
-	parameter RECEIVE_WRITE_DATA = 3;
-	parameter SEND_READ_DATA = 4;
-	parameter PKT_ALIVE = 8'b00100000;
-	parameter PKT_WRITE_CMD = 8'b01000001;
-	parameter PKT_ADR = 8'b01100000;
-	parameter PKT_READ_CMD = 8'b01000010;
-	reg [2:0] UART_STATE;
-	reg [31:0] DATA;
-	reg [31:0] DATA_READ;
-	reg [ADDR_WIDTH - 1:0] MEMORY_ADDRESS;
-	assign data_wdata_o = DATA[31:0];
-	assign data_addr_o[ADDR_WIDTH - 1:0] = {MEMORY_ADDRESS[ADDR_WIDTH - 1:0]};
-	reg transmit;
-	reg trans_txn_ff2;
-	reg trans_txn_ff;
-	assign transmit_i = !trans_txn_ff2 & trans_txn_ff;
-	always @(posedge clk_i)
-		if (rst_i) begin
-			trans_txn_ff <= 1'b0;
-			trans_txn_ff2 <= 1'b0;
-		end
-		else begin
-			trans_txn_ff <= transmit;
-			trans_txn_ff2 <= trans_txn_ff;
-		end
-	reg [2:0] data_count;
-	reg we;
-	reg start_read;
-	reg read_issued;
-	reg read_registered;
-	reg read_complete;
-	reg write_issued;
-	reg pending_res;
-	always @(posedge clk_i or posedge rst_i)
-		if (rst_i) begin
-			pending_res <= 0;
-			UART_STATE <= IDLE;
-			MEMORY_ADDRESS <= 0;
-			transmit <= 0;
-			data_count <= 4;
-			we <= 0;
-			start_read <= 0;
-			DATA <= 0;
-			tx_byte_i <= 0;
-		end
-		else
-			case (UART_STATE)
-				IDLE: begin
-					data_count <= 4;
-					start_read <= 0;
-					if ((!is_transmitting_o & !received_o) & !is_receiving_o) begin
-						tx_byte_i <= PKT_ALIVE;
-						transmit <= 1;
-					end
-					else if (received_o || (pending_res == 1'b1)) begin
-						if (recv_error_o == 1'b0)
-							if (is_transmitting_o)
-								pending_res <= 1'b1;
-							else if (rx_byte_o[7:0] == PKT_WRITE_CMD[7:0]) begin
-								tx_byte_i <= PKT_WRITE_CMD;
-								we <= 1;
-								transmit <= 1;
-								pending_res <= 1'b0;
-								UART_STATE <= WAIT_ADDR_HEAD;
-							end
-							else if (rx_byte_o[7:0] == PKT_READ_CMD[7:0]) begin
-								tx_byte_i <= PKT_READ_CMD;
-								$display("IDLE to WAIT_ADDR_HEAD \n");
-								we <= 0;
-								transmit <= 1;
-								pending_res <= 1'b0;
-								UART_STATE <= WAIT_ADDR_HEAD;
-							end
-					end
-					else
-						transmit <= 0;
-				end
-				WAIT_ADDR_HEAD:
-					if (received_o) begin
-						if (recv_error_o == 1'b1)
-							UART_STATE <= IDLE;
-						else if (rx_byte_o[7:5] == PKT_ADR[7:5]) begin
-							tx_byte_i <= rx_byte_o;
-							MEMORY_ADDRESS[9:8] <= rx_byte_o[1:0];
-							transmit <= 1;
-							UART_STATE <= WAIT_ADDR_TAIL;
-							$display("WAIT_ADDR_HEAD to WAIT_ADDR_TAIL\n");
-						end
-					end
-					else
-						transmit <= 0;
-				WAIT_ADDR_TAIL:
-					if (received_o) begin
-						MEMORY_ADDRESS[7:0] <= rx_byte_o[7:0];
-						data_count <= 4;
-						if (recv_error_o == 1'b1)
-							UART_STATE <= IDLE;
-						else if (we == 1) begin
-							tx_byte_i <= rx_byte_o;
-							transmit <= 1;
-							UART_STATE <= RECEIVE_WRITE_DATA;
-						end
-						else begin
-							start_read <= 1;
-							$display("WAIT_ADDR_TAIL received_o\n");
-						end
-					end
-					else if (read_issued) begin
-						$display("WAIT_ADDR_TAIL READ ISSUED\n");
-						start_read <= 0;
-					end
-					else if (read_complete) begin
-						$display("WAIT_ADDR_TAIL to SEND_READ_DATA\n");
-						UART_STATE <= SEND_READ_DATA;
-					end
-					else
-						transmit <= 0;
-				RECEIVE_WRITE_DATA:
-					if (received_o) begin
-						$display("packet recieved uart 2 mem");
-						tx_byte_i <= rx_byte_o;
-						if (data_count == 4) begin
-							DATA[31:24] <= rx_byte_o;
-							data_count <= 3;
-						end
-						else if (data_count == 3) begin
-							DATA[23:16] <= rx_byte_o;
-							data_count <= 2;
-						end
-						else if (data_count == 2) begin
-							DATA[15:8] <= rx_byte_o;
-							data_count <= 1;
-						end
-						else if (data_count == 1) begin
-							DATA[7:0] <= rx_byte_o;
-							data_count <= 0;
-							UART_STATE <= IDLE;
-						end
-						transmit <= 1;
-					end
-					else
-						transmit <= 0;
-				SEND_READ_DATA:
-					if (data_count == 4) begin
-						tx_byte_i <= DATA_READ[31:24];
-						transmit <= 1;
-						data_count <= 3;
-						$display("U2M - Sending B1 -", DATA_READ[31:24]);
-					end
-					else if (received_o) begin
-						if (data_count == 3) begin
-							tx_byte_i <= DATA_READ[23:16];
-							data_count <= 2;
-							$display("U2M - Sending B2 -", DATA_READ[23:16]);
-						end
-						else if (data_count == 2) begin
-							tx_byte_i <= DATA_READ[15:8];
-							data_count <= 1;
-							$display("U2M - Sending B3 -", DATA_READ[15:8]);
-						end
-						else if (data_count == 1) begin
-							tx_byte_i <= DATA_READ[7:0];
-							data_count <= 0;
-							$display("U2M - Sending B4 -", DATA_READ[7:0]);
-						end
-						else if (data_count == 0)
-							UART_STATE <= IDLE;
-						transmit <= 1;
-					end
-					else
-						transmit <= 0;
-			endcase
-	always @(posedge clk_i)
-		if (rst_i) begin
-			write_issued <= 0;
-			read_issued <= 0;
-			read_registered <= 0;
-			DATA_READ <= 0;
-			data_we_o <= 0;
-			data_req_o <= 0;
-			read_complete <= 0;
-		end
-		else if (((data_count == 0) | (write_issued == 1)) & (we == 1)) begin
-			if (write_issued == 0) begin
-				data_we_o <= 1;
-				data_req_o <= 1;
-				write_issued <= 1;
-			end
-			else if (write_issued == 1)
-				if (data_gnt_i == 1) begin
-					data_req_o <= 0;
-					write_issued <= 0;
-				end
-		end
-		else if (~read_issued & (start_read == 1)) begin
-			read_complete <= 0;
-			data_we_o <= 0;
-			data_req_o <= 1;
-			read_issued <= 1;
-		end
-		else if ((read_issued == 1) & (data_gnt_i == 1)) begin
-			data_req_o <= 0;
-			read_issued <= 0;
-			read_registered <= 1;
-		end
-		else if (read_registered == 1) begin
-			if (data_rvalid_i) begin
-				read_registered <= 0;
-				DATA_READ <= data_rdata_i;
-				read_complete <= 1;
-			end
-		end
-		else if (read_complete == 1)
-			read_complete <= 0;
-	uart uart_i(
-		.clk(clk_i),
-		.rst(rst_i),
-		.rx(rx_i),
-		.tx(tx_o),
-		.transmit(transmit_i),
-		.tx_byte(tx_byte_i),
-		.received(received_o),
-		.rx_byte(rx_byte_o),
-		.is_receiving(is_receiving_o),
-		.is_transmitting(is_transmitting_o),
-		.recv_error(recv_error_o)
-	);
 endmodule
