@@ -84,6 +84,7 @@ module user_proj_example (
 */
 //	    input clk
 
+
     input clk_i, //main clock 20mhz
     input debug_req_i,
     input fetch_enable_i, //enable cpu
@@ -102,22 +103,49 @@ module user_proj_example (
     output eFPGA_en_o,
     output [1:0] eFPGA_operator_o,
     output [3:0] eFPGA_delay_o,
+    input [31:0]ext_data_addr_i,
+    input [3:0]ext_data_be_i,
+    output ext_data_gnt_o,
+    output [31:0]ext_data_rdata_o,
+    input ext_data_req_i,
+    input ext_data_rvalid_i,
+    input [31:0]ext_data_wdata_i,
+    input ext_data_we_i
+);
 
-    output [31:0]flexbex_data_addr_o,
-    output [3:0]flexbex_data_be_o,
-    input flexbex_data_gnt_i,
-    input [31:0]flexbex_data_rdata_i,
-    output flexbex_data_req_o,
-    input flexbex_data_rvalid_i,
-    output [31:0]flexbex_data_wdata_o,
-    output flexbex_data_we_o,
-    output [31:0]flexbex_instr_addr_o,
-    input flexbex_instr_gnt_i,
-    input [31:0]flexbex_instr_rdata_i,
-    output flexbex_instr_req_o,
-    input flexbex_instr_rvalid_i
+
+
+
+forte_soc_top  FSTi (.clk_i(clk_i),
+    .debug_req_i(debug_req_i),
+    .fetch_enable_i(fetch_enable_i),
+    .irq_ack_o(irq_ack_o),
+    .irq_i(irq_i),
+    .irq_id_i(irq_id_i),
+    .irq_id_o(irq_id_o),
+    .reset(reset),
+    .eFPGA_operand_a_o(eFPGA_operand_a_o),
+    .eFPGA_operand_b_o(eFPGA_operand_b_o),
+    .eFPGA_result_a_i(eFPGA_result_a_i),
+    .eFPGA_result_b_i(eFPGA_result_b_i),
+    .eFPGA_result_c_i(eFPGA_result_c_i),
+    .eFPGA_write_strobe_o(eFPGA_write_strobe_o),
+    .eFPGA_fpga_done_i(eFPGA_fpga_done_i),
+    .eFPGA_delay_o(eFPGA_delay_o),
+    .eFPGA_en_o(eFPGA_en_o),
+    .eFPGA_operator_o(eFPGA_operator_o),
+    .ext_data_addr_i(ext_data_addr_i),
+    .ext_data_be_i(ext_data_be_i),
+    .ext_data_gnt_o(ext_data_gnt_o),
+    .ext_data_rdata_o(ext_data_rdata_o),
+    .ext_data_req_i(ext_data_req_i),
+    .ext_data_rvalid_i(ext_data_rvalid_i),
+    .ext_data_wdata_i(ext_data_wdata_i),
+    .ext_data_we_i(ext_data_we_i),
+    
 
 );
+
 
 
 
@@ -142,48 +170,6 @@ mem_wb mprj (
 );
 
 */
-
-    ibex_core ibex_core_i
-         (.boot_addr_i(32'd0),
-          .clk_i(clk_i),
-          .cluster_id_i(6'd0),
-          .core_id_i(4'd0),
-          .data_addr_o(flexbex_data_addr_o),
-          .data_be_o(flexbex_data_be_o),
-          .data_err_i(1'b0),
-          .data_gnt_i(flexbex_data_gnt_i),
-          .data_rdata_i(flexbex_data_rdata_i),
-          .data_req_o(flexbex_data_req_o),
-          .data_rvalid_i(flexbex_data_rvalid_i),
-          .data_wdata_o(flexbex_data_wdata_o),
-          .data_we_o(flexbex_data_we_o),
-          .debug_req_i(debug_req_i),
-          .ext_perf_counters_i(1'b0),
-          .fetch_enable_i(fetch_enable_i),
-          .instr_addr_o(flexbex_instr_addr_o),
-          .instr_gnt_i(flexbex_instr_gnt_i),
-          .instr_rdata_i(flexbex_instr_rdata_i),
-          .instr_req_o(flexbex_instr_req_o),
-          .instr_rvalid_i(flexbex_instr_rvalid_i),
-          .irq_ack_o(irq_ack_o),
-          .irq_i(irq_i),
-          .irq_id_i(irq_id_i),
-          .irq_id_o(irq_id_o),
-          .rst_ni(reset_ni),
-          .test_en_i(1'b1),
-          .eFPGA_operand_a_o(eFPGA_operand_a_o),
-          .eFPGA_operand_b_o(eFPGA_operand_b_o),
-          .eFPGA_result_a_i(eFPGA_result_a_i),
-          .eFPGA_result_b_i(eFPGA_result_b_i),
-          .eFPGA_result_c_i(eFPGA_result_c_i),
-	      .eFPGA_write_strobe_o(eFPGA_write_strobe_o),
-          .eFPGA_fpga_done_i(eFPGA_fpga_done_i),
-          .eFPGA_en_o(eFPGA_en_o),
-          .eFPGA_operator_o(eFPGA_operator_o),
-          .eFPGA_delay_o(eFPGA_delay_o));
-
-
-
 
     // Assuming LA probes [65:64] are for controlling the count clk & reset  
    // assign clk = (~la_oenb[64]) ? la_data_in[64]: wb_clk_i;
