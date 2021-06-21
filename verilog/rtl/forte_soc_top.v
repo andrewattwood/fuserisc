@@ -19,14 +19,13 @@ module forte_soc_top (
 	eFPGA_operator_o,
 	ext_data_addr_i,
 	ext_data_be_i,
-	ext_data_gnt_o,
 	ext_data_rdata_o,
 	ext_data_req_i,
 	ext_data_rvalid_o,
 	ext_data_wdata_i,
 	ext_data_we_i
 );
-	parameter ADDR_WIDTH = 8;
+	parameter ADDR_WIDTH = 10;
 	input clk_i;
 	input debug_req_i;
 	input fetch_enable_i;
@@ -45,7 +44,7 @@ module forte_soc_top (
 	output eFPGA_en_o;
 	output [1:0] eFPGA_operator_o;
 	output [3:0] eFPGA_delay_o;
-	wire [31:0] flexbex_data_addr_o;
+	wire [ADDR_WIDTH - 1:0] flexbex_data_addr_o;
 	wire [3:0] flexbex_data_be_o;
 	wire flexbex_data_gnt_i;
 	wire [31:0] flexbex_data_rdata_i;
@@ -53,25 +52,23 @@ module forte_soc_top (
 	wire flexbex_data_rvalid_o;
 	wire [31:0] flexbex_data_wdata_o;
 	wire flexbex_data_we_o;
-	input [31:0] ext_data_addr_i;
+	input [ADDR_WIDTH - 1:0] ext_data_addr_i;
 	input [3:0] ext_data_be_i;
-	output ext_data_gnt_o;
 	output [31:0] ext_data_rdata_o;
 	input ext_data_req_i;
-	input ext_data_rvalid_o;
+	output ext_data_rvalid_o;
 	input [31:0] ext_data_wdata_i;
 	input ext_data_we_i;
-	wire [31:0] flexbex_instr_addr_o;
+	wire [ADDR_WIDTH - 1:0] flexbex_instr_addr_o;
 	wire flexbex_instr_gnt_o;
 	wire [31:0] flexbex_instr_rdata_o;
 	wire flexbex_instr_req_o;
 	wire flexbex_instr_rvalid_o;
 	wire flexbex_data_rdata_o;
-	wire ext_data_rvalid_o;
 	wire ext_data_wdata_o;
 	ram ram_0(
 		.clk(clk_i),
-		.ibex_data_addr_i(flexbex_data_addr_o[ADDR_WIDTH - 1:0]),
+		.ibex_data_addr_i(flexbex_data_addr_o),
 		.ibex_data_be_i(flexbex_data_be_o),
 		.ibex_data_gnt_o(flexbex_data_gnt_i),
 		.ibex_data_rdata_o(flexbex_data_rdata_o),
@@ -86,7 +83,6 @@ module forte_soc_top (
 		.instr_rvalid_o(flexbex_instr_rvalid_o),
 		.ext_data_addr_i(ext_data_addr_i),
 		.ext_data_be_i(ext_data_be_i),
-		.ext_data_gnt_o(ext_data_gnt_o),
 		.ext_data_rdata_o(ext_data_rdata_o),
 		.ext_data_req_i(ext_data_req_i),
 		.ext_data_rvalid_o(ext_data_rvalid_o),
@@ -4107,10 +4103,9 @@ module ram (
 	ext_data_be_i,
 	ext_data_wdata_i,
 	ext_data_rdata_o,
-	ext_data_rvalid_o,
-	ext_data_gnt_o
+	ext_data_rvalid_o
 );
-	parameter ADDR_WIDTH = 8;
+	parameter ADDR_WIDTH = 10;
 	input wire clk;
 	input wire instr_req_i;
 	input wire [ADDR_WIDTH - 1:0] instr_addr_i;
@@ -4132,7 +4127,6 @@ module ram (
 	input wire [31:0] ext_data_wdata_i;
 	output wire [31:0] ext_data_rdata_o;
 	output reg ext_data_rvalid_o;
-	output wire ext_data_gnt_o;
 	wire data_req_i;
 	wire [ADDR_WIDTH - 1:0] data_addr_i;
 	wire [31:0] data_wdata_i;
@@ -4147,8 +4141,7 @@ module ram (
 	assign data_we_i = (ext_data_req_i ? ext_data_we_i : ibex_data_we_i);
 	assign data_be_i = (ext_data_req_i ? ext_data_be_i : ibex_data_be_i);
 	assign ibex_data_gnt_o = !ext_data_req_i & ibex_data_req_i;
-	assign ext_data_gnt_o = ext_data_req_i;
-	sky130_sram_1kbyte_1rw1r_32x256_8 sram_i(
+	sram_1rw1r_32_256_8_sky130 sram_i(
 		.clk0(clk),
 		.csb0(!data_req_i),
 		.web0(!data_be_i),
@@ -4171,3 +4164,82 @@ module ram (
 	end
 endmodule
 `default_nettype none
+module sram_1rw1r_32_256_8_sky130 (
+	clk0,
+	csb0,
+	web0,
+	wmask0,
+	addr0,
+	din0,
+	dout0,
+	clk1,
+	csb1,
+	addr1,
+	dout1
+);
+	parameter NUM_WMASKS = 4;
+	parameter DATA_WIDTH = 32;
+	parameter ADDR_WIDTH = 10;
+	parameter RAM_DEPTH = 1 << ADDR_WIDTH;
+	parameter DELAY = 3;
+	input clk0;
+	input csb0;
+	input web0;
+	input [NUM_WMASKS - 1:0] wmask0;
+	input [ADDR_WIDTH - 1:0] addr0;
+	input [DATA_WIDTH - 1:0] din0;
+	output [DATA_WIDTH - 1:0] dout0;
+	input clk1;
+	input csb1;
+	input [ADDR_WIDTH - 1:0] addr1;
+	output [DATA_WIDTH - 1:0] dout1;
+	reg csb0_reg;
+	reg web0_reg;
+	reg [NUM_WMASKS - 1:0] wmask0_reg;
+	reg [ADDR_WIDTH - 1:0] addr0_reg;
+	reg [DATA_WIDTH - 1:0] din0_reg;
+	always @(posedge clk0) begin
+		csb0_reg = csb0;
+		web0_reg = web0;
+		wmask0_reg = wmask0;
+		addr0_reg = addr0;
+		din0_reg = din0;
+	end
+	reg csb1_reg;
+	reg [ADDR_WIDTH - 1:0] addr1_reg;
+	always @(posedge clk1) begin
+		csb1_reg = csb1;
+		addr1_reg = addr1;
+	end
+	reg [DATA_WIDTH - 1:0] mem [0:RAM_DEPTH - 1];
+	always @(negedge clk0) begin : MEM_WRITE0
+		if (!csb0_reg && !web0_reg) begin
+			if (wmask0_reg[0])
+				mem[addr0_reg][7:0] = din0_reg[7:0];
+			if (wmask0_reg[1])
+				mem[addr0_reg][15:8] = din0_reg[15:8];
+			if (wmask0_reg[2])
+				mem[addr0_reg][23:16] = din0_reg[23:16];
+			if (wmask0_reg[3])
+				mem[addr0_reg][31:24] = din0_reg[31:24];
+		end
+	end
+	always @(negedge clk0) begin : MEM_READ0
+		if (!csb0_reg && web0_reg)
+			dout0 <= mem[addr0_reg];
+	end
+	always @(negedge clk1) begin : MEM_READ1
+		if (!csb1_reg)
+			dout1 <= mem[addr1_reg];
+	end
+	function [31:0] readWord;
+		input integer word_addr;
+		readWord = mem[word_addr];
+	endfunction
+	task writeWord;
+		input integer word_addr;
+		input [31:0] val;
+		mem[word_addr] = val;
+	endtask
+endmodule
+`default_nettype wire
