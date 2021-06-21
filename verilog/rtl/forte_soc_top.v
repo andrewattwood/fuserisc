@@ -4141,7 +4141,7 @@ module ram (
 	assign data_we_i = (ext_data_req_i ? ext_data_we_i : ibex_data_we_i);
 	assign data_be_i = (ext_data_req_i ? ext_data_be_i : ibex_data_be_i);
 	assign ibex_data_gnt_o = !ext_data_req_i & ibex_data_req_i;
-	sram_1rw1r_32_256_8_sky130 sram_i(
+	sky130_sram_1kbyte_1rw1r_32x256_8 sram_i(
 		.clk0(clk),
 		.csb0(!data_req_i),
 		.web0(!data_be_i),
