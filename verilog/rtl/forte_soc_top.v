@@ -22,7 +22,7 @@ module forte_soc_top (
 	ext_data_gnt_o,
 	ext_data_rdata_o,
 	ext_data_req_i,
-	ext_data_rvalid_i,
+	ext_data_rvalid_o,
 	ext_data_wdata_i,
 	ext_data_we_i
 );
@@ -58,7 +58,7 @@ module forte_soc_top (
 	output ext_data_gnt_o;
 	output [31:0] ext_data_rdata_o;
 	input ext_data_req_i;
-	input ext_data_rvalid_i;
+	input ext_data_rvalid_o;
 	input [31:0] ext_data_wdata_i;
 	input ext_data_we_i;
 	wire [31:0] flexbex_instr_addr_o;
