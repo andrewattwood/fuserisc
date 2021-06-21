@@ -108,7 +108,7 @@ module user_proj_example (
     output ext_data_gnt_o,
     output [31:0]ext_data_rdata_o,
     input ext_data_req_i,
-    input ext_data_rvalid_i,
+    output ext_data_rvalid_o,
     input [31:0]ext_data_wdata_i,
     input ext_data_we_i
 );
@@ -139,7 +139,7 @@ forte_soc_top  FSTi (.clk_i(clk_i),
     .ext_data_gnt_o(ext_data_gnt_o),
     .ext_data_rdata_o(ext_data_rdata_o),
     .ext_data_req_i(ext_data_req_i),
-    .ext_data_rvalid_i(ext_data_rvalid_i),
+.ext_data_rvalid_o(ext_data_rvalid_o),
     .ext_data_wdata_i(ext_data_wdata_i),
     .ext_data_we_i(ext_data_we_i),
     
