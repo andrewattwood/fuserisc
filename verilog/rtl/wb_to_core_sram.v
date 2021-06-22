@@ -44,12 +44,6 @@ assign wb_data_req_i = (wbs_stb_i & wbs_cyc_i) ? 1 :0;
 
     always @*
    begin
-   if(wb_data_req_i == 1'b1)
-   begin
-        $write("*-* All Finished *-*\n");
-            $finish;
-
-    end
         if(wb_data_addr_i[10] == 1'b1)
         begin
                 core_b_data_addr_o = wb_data_addr_i[9:0];
