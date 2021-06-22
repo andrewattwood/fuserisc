@@ -61,15 +61,15 @@ module user_project_wrapper #(
     input  [127:0] la_oenb,
 
     // IOs
-    input  [`MPRJ_IO_PADS-1:0] io_in,
-    output [`MPRJ_IO_PADS-1:0] io_out,
-    output [`MPRJ_IO_PADS-1:0] io_oeb,
+    input  [38-1:0] io_in,
+    output [38-1:0] io_out,
+    output [38-1:0] io_oeb,
 
     // Analog (direct connection to GPIO pad---use with caution)
     // Note that analog I/O is not available on the 7 lowest-numbered
     // GPIO pads, and so the analog_io indexing is offset from the
     // GPIO indexing by 7 (also upper 2 GPIOs do not have analog_io).
-    inout [`MPRJ_IO_PADS-10:0] analog_io,
+    inout [38-10:0] analog_io,
 
     // Independent clock (on independent integer divider)
     input   user_clock2,
@@ -82,12 +82,22 @@ module user_project_wrapper #(
 /* User project is instantiated  here   */
 /*--------------------------------------*/
 
-eFPGA_top inst_eFPGA_top (
+eFPGA_CPU_top inst_eFPGA_CPU_top (
 	.wb_clk_i(wb_clk_i),
+	.wb_rst_i(wb_rst_i),
+	.wbs_stb_i(wbs_stb_i),
+	.wbs_cyc_i(wbs_cyc_i),
+	.wbs_we_i(wbs_we_i),
+	.wbs_sel_i(wbs_sel_i),
+	.wbs_dat_i(wbs_dat_i),
+	.wbs_adr_i(wbs_adr_i),
+	.wbs_ack_o(wbs_ack_o),
+	.wbs_dat_o(wbs_dat_o),
 	.la_data_out(la_data_out[2:0]),
-	.io_in(io_in[37:7]),
-	.io_out(io_out[37:7]),
-	.io_oeb(io_oeb[37:7]),
+	.la_data_in(la_data_in),
+	.io_in({io_in[37:35],io_in[17:8]}),
+	.io_out({io_out[37:35],io_out[17:8]}),
+	.io_oeb({io_oeb[37:35],io_oeb[17:8]}),
 	.user_clock2(user_clock2)
 );
 
