@@ -2,27 +2,24 @@
 module eFPGA_CPU_top (
 	// Wishbone Slave ports (WB MI A)
 	input wb_clk_i,
-   	input wb_rst_i,
-    input wbs_stb_i,
-    input wbs_cyc_i,
-    input wbs_we_i,
-    input [3:0] wbs_sel_i,
-    input [31:0] wbs_dat_i,
-    input [31:0] wbs_adr_i,
-    output wbs_ack_o,
-    output [31:0] wbs_dat_o,
+	input wb_rst_i,
+	input wbs_stb_i,
+	input wbs_cyc_i,
+	input wbs_we_i,
+	input [3:0] wbs_sel_i,
+	input [31:0] wbs_dat_i,
+	input [31:0] wbs_adr_i,
+	output wbs_ack_o,
+	output [31:0] wbs_dat_o,
 
 	// Logic Analyzer Signals
 	output [2:0] la_data_out, //AA First 3 are in use?
-    input  [127:0] la_data_in,
- 
+	input  [127:0] la_data_in,
 
 	// IOs
-	input  [30:0] io_in,
-	output [30:0] io_out,
-	output [30:0] io_oeb,
-
-
+	input  [12:0] io_in,
+	output [12:0] io_out,
+	output [12:0] io_oeb,
 
 	// Independent clock (on independent integer divider)
 	input   user_clock2
@@ -90,6 +87,17 @@ module eFPGA_CPU_top (
 	assign io_oeb[6:0] = 7'b1000000;
 	
 	assign CLK = clk_sel[0] ? (clk_sel[1] ? user_clock2 : wb_clk_i) : external_clock;
+
+	assign W_OPA[39] = io_in[7];
+	assign W_OPB[39] = io_in[8];
+	assign W_OPA[38] = io_in[9];
+	assign E_OPA[39] = io_in[10];
+	assign E_OPB[39] = io_in[11];
+	assign E_OPA[38] = io_in[12];
+	assign io_out[9:7] = W_RES1[39:37];
+	assign io_oeb[9:7] = W_RES2[39:37];
+	assign io_out[12:10] = E_RES1[39:37];
+	assign io_oeb[12:10] = E_RES2[39:37];
 
 //CPU instantiation
 /* 	
@@ -160,9 +168,19 @@ wire [40-1:0] W_OPA;  //from RISCV
 	wire [40-1:0] W_RES1; //to RISCV
 	wire [40-1:0] W_RES2; //to RISCV
 */
-wire eFPGA_operand_a_o;
-assign W_OPA[31:0] = eFPGA_operand_a_o;
-assign SelfWriteData = eFPGA_operand_a_o;
+    wire eFPGA_operand_a_o;
+    assign W_OPA[31:0] = eFPGA_operand_a_o;
+    assign SelfWriteData = eFPGA_operand_a_o;
+
+ //output to core mem a
+
+    wire [8:0]core_a_data_addr_o;
+    wire [3:0]core_a_data_be_o;
+    wire [31:0]core_a_data_rdata_i;
+    wire core_a_data_req_o;
+    wire core_a_data_rvalid_i;
+    wire [31:0]core_a_data_wdata_o;
+    wire core_a_data_we_o;
 
 forte_soc_top  FST_a_i (.clk_i(CLK), //clock
     .debug_req_i(la_data_in[0]), 
@@ -186,21 +204,20 @@ forte_soc_top  FST_a_i (.clk_i(CLK), //clock
     .ext_data_be_i(core_a_data_be_o),
     .ext_data_rdata_o(core_a_data_rdata_i),
     .ext_data_req_i(core_a_data_req_o),
-	.ext_data_rvalid_o(core_a_data_rvalid_i),
+    .ext_data_rvalid_o(core_a_data_rvalid_i),
     .ext_data_wdata_i(core_a_data_wdata_o),
     .ext_data_we_i(core_a_data_we_o)
 );
 
- //output to core mem a
+ //output to core mem b
 
-    wire [8:0]core_a_data_addr_o;
-    wire [3:0]core_a_data_be_o;
-    wire [31:0]core_a_data_rdata_i;
-    wire core_a_data_req_o;
-    wire core_a_data_rvalid_i;
-    wire [31:0]core_a_data_wdata_o;
-    wire core_a_data_we_o;
-
+    wire [8:0]core_b_data_addr_o;
+    wire [3:0]core_b_data_be_o;
+    wire [31:0]core_b_data_rdata_i;
+    wire core_b_data_req_o;
+    wire core_b_data_rvalid_i;
+    wire [31:0]core_b_data_wdata_o;
+    wire core_b_data_we_o;
 
 forte_soc_top  FST_b_i (.clk_i(CLK), //clock
     .debug_req_i(la_data_in[0]), 
@@ -230,20 +247,7 @@ forte_soc_top  FST_b_i (.clk_i(CLK), //clock
 );
 
 
-
- //output to core mem b
-
-    wire [8:0]core_b_data_addr_o;
-    wire [3:0]core_b_data_be_o;
-    wire [31:0]core_b_data_rdata_i;
-    wire core_b_data_req_o;
-    wire core_b_data_rvalid_i;
-    wire [31:0]core_b_data_wdata_o;
-    wire core_b_data_we_o;
-
-
 wb_to_core_sram wb_to_core_sram_i(
-
 
    //input from the wishbone
     .wb_data_addr_i(wbs_adr_i),
@@ -275,9 +279,7 @@ wb_to_core_sram wb_to_core_sram_i(
    	.core_b_data_wdata_o(core_b_data_wdata_o),
     .core_b_data_we_o(core_b_data_we_o)
 
-)
-
-
+);
 
 
 Config Config_inst (
@@ -847,4 +849,3 @@ Config Config_inst (
 	assign FrameData = {32'h12345678,FrameRegister,32'h12345678};
 
 endmodule
-
