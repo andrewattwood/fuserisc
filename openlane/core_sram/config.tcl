@@ -45,11 +45,15 @@ set ::env(VERILOG_FILES) "\
 #set ::env(EXTRA_GDS_FILES) "\
 #  $script_dir/../../gds/DFFRAM.gds"
 
+
+
 set ::env(CLOCK_PORT) "clk_i"
 set ::env(CLOCK_PERIOD) "50"
 
 #set ::env(SYNTH_STRATEGY) 2
-set ::env(SYNTH_MAX_FANOUT) 4
+
+
+#set ::env(SYNTH_MAX_FANOUT) 4
 
 set ::env(FP_PDN_VPITCH) 50
 set ::env(PDN_CFG) $script_dir/pdn.tcl
@@ -60,18 +64,20 @@ set ::env(PL_TARGET_DENSITY_CELLS) 0.38
 set ::env(PL_OPENPHYSYN_OPTIMIZATIONS) 1
 set ::env(CELL_PAD) 4
 
-set ::env(GLB_RT_ADJUSTMENT) 0
-set ::env(GLB_RT_L2_ADJUSTMENT) 0.2
-set ::env(GLB_RT_L3_ADJUSTMENT) 0.25
-set ::env(GLB_RT_L4_ADJUSTMENT) 0.2
-set ::env(GLB_RT_L5_ADJUSTMENT) 0.1
-set ::env(GLB_RT_L6_ADJUSTMENT) 0.1
-set ::env(GLB_RT_TILES) 14
-set ::env(GLB_RT_MAXLAYER) 5
+#set ::env(GLB_RT_ADJUSTMENT) 0
+#set ::env(GLB_RT_L2_ADJUSTMENT) 0.2
+#set ::env(GLB_RT_L3_ADJUSTMENT) 0.25
+#set ::env(GLB_RT_L4_ADJUSTMENT) 0.2
+#set ::env(GLB_RT_L5_ADJUSTMENT) 0.1
+#set ::env(GLB_RT_L6_ADJUSTMENT) 0.1
+#set ::env(GLB_RT_TILES) 14
+#set ::env(GLB_RT_MAXLAYER) 5
 
-set ::env(DIODE_INSERTION_STRATEGY) 4
+#set ::env(DIODE_INSERTION_STRATEGY) 4
 
-set ::env(FP_CORE_UTIL) 25
+#set ::env(FP_CORE_UTIL) 25
+
+
 set ::env(MACRO_PLACEMENT_CFG) [glob $::env(DESIGN_DIR)/macro_placement.cfg]
 
 set ::env(VERILOG_FILES_BLACKBOX) "\
@@ -100,7 +106,8 @@ set ::env(EXTRA_GDS_FILES) "\
 #set ::env(MACRO_PLACEMENT_CFG) $script_dir/macro_placement.cfg
 #set ::env(PL_OPENPHYSYN_OPTIMIZATIONS) 1
 #set ::env(RUN_CVC) 0
-#set ::env(FP_CORE_UTIL) 25
+
+	#set ::env(FP_CORE_UTIL) 25
 #//end 3 vio
 #
 #
@@ -109,7 +116,7 @@ set ::env(EXTRA_GDS_FILES) "\
 #set ::env(FP_SIZING) absolute
 #set ::env(DIE_AREA) "0 0 2150 900"
 
-
+set ::env(SYNTH_MAX_FANOUT) 4
 #set ::env(MACRO_PLACEMENT_CFG) $script_dir/macro_placement.cfg
 #set ::env(PL_TARGET_DENSITY) 0.52
 #set ::env(PL_TARGET_DENSITY_CELLS) 0.38
@@ -132,9 +139,8 @@ set ::env(EXTRA_GDS_FILES) "\
 #set ::env(PDN_CFG) $script_dir/pdn.tcl
 
 #set ::env(FP_PIN_ORDER_CFG) $script_dir/pin_order.cfg
-#set ::env(FP_CORE_UTIL) 25
-#set ::env(FP_SIZING) absolute
-#set ::env(DIE_AREA) "0 0 450 950"
+set ::env(FP_SIZING) absolute
+set ::env(DIE_AREA) "0 0 1200 800"
 #
 #set ::env(FP_HORIZONTAL_HALO) 5
 #set ::env(FP_VERTICAL_HALO) 14
