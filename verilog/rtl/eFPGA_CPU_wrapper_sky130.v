@@ -219,7 +219,7 @@ forte_soc_top  FST_a_i (.clk_i(CLK), //clock
     wire [31:0]core_b_data_wdata_o;
     wire core_b_data_we_o;
 
-forte_soc_top  FST_b_i (.clk_i(CLK), //clock
+core_sram  FST_b_i (.clk_i(CLK), //clock
     .debug_req_i(la_data_in[0]), 
     .fetch_enable_i(la_data_in[1]),
     .irq_ack_o(E_OPA[33]),  
@@ -247,7 +247,7 @@ forte_soc_top  FST_b_i (.clk_i(CLK), //clock
 );
 
 
-wb_to_core_sram wb_to_core_sram_i(
+wb_mem_split wb_to_core_sram_i(
 
    //input from the wishbone
     .wb_data_addr_i(wbs_adr_i),
