@@ -11,3 +11,5 @@
 ### FuseRISC will demonstrate the benefits of the tight coupling of RISC-V cores and eFPGA fabric for tensorflow micro applications. Two RISC-V cores will have ALU that are integrated directly with a customised eFPGA fabric generated using the FABulous eFPGA framework. Each core is coupled to the caravel wishbone interface and has access to a 1kb OpenRAM SKY130 Standard SRAM. Other control pins are connected to the caravel LA probes. The RISC-V cores are modified IBEX cores from lowRISC.
 
 
+
+// SPDX-License-Identifier: Apache-2.0
