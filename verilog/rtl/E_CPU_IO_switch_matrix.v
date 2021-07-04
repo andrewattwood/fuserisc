@@ -1,3 +1,18 @@
+// SPDX-FileCopyright 2021 Nguyen Dao
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// SPDX-License-Identifier: Apache-2.0
 //NumberOfConfigBits:0
 module E_CPU_IO_switch_matrix (E1END0, E1END1, E1END2, E1END3, E2MID0, E2MID1, E2MID2, E2MID3, E2MID4, E2MID5, E2MID6, E2MID7, E2END0, E2END1, E2END2, E2END3, E2END4, E2END5, E2END6, E2END7, EE4END0, EE4END1, EE4END2, EE4END3, EE4END4, EE4END5, EE4END6, EE4END7, EE4END8, EE4END9, EE4END10, EE4END11, EE4END12, EE4END13, EE4END14, EE4END15, E6END0, E6END1, E6END2, E6END3, E6END4, E6END5, E6END6, E6END7, E6END8, E6END9, E6END10, E6END11, OPA_O0, OPA_O1, OPA_O2, OPA_O3, OPB_O0, OPB_O1, OPB_O2, OPB_O3, W1BEG0, W1BEG1, W1BEG2, W1BEG3, W2BEG0, W2BEG1, W2BEG2, W2BEG3, W2BEG4, W2BEG5, W2BEG6, W2BEG7, W2BEGb0, W2BEGb1, W2BEGb2, W2BEGb3, W2BEGb4, W2BEGb5, W2BEGb6, W2BEGb7, WW4BEG0, WW4BEG1, WW4BEG2, WW4BEG3, WW4BEG4, WW4BEG5, WW4BEG6, WW4BEG7, WW4BEG8, WW4BEG9, WW4BEG10, WW4BEG11, WW4BEG12, WW4BEG13, WW4BEG14, WW4BEG15, W6BEG0, W6BEG1, W6BEG2, W6BEG3, W6BEG4, W6BEG5, W6BEG6, W6BEG7, W6BEG8, W6BEG9, W6BEG10, W6BEG11, RES0_I0, RES0_I1, RES0_I2, RES0_I3, RES1_I0, RES1_I1, RES1_I2, RES1_I3, RES2_I0, RES2_I1, RES2_I2, RES2_I3);
 	parameter NoConfigBits = 0;
