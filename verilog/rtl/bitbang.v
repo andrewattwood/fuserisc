@@ -1,4 +1,4 @@
-// SPDX-FileCopyright 2021 Nguyen Dao
+// SPDX-FileCopyrightText: 2020 Nguyen Dao
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,8 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 // SPDX-License-Identifier: Apache-2.0
+
 module bitbang (s_clk, s_data, strobe, data, active, clk);
 	localparam on_pattern = 16'hFAB1; 
 	localparam off_pattern = 16'hFAB0; 

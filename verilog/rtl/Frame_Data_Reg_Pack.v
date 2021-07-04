@@ -1,4 +1,4 @@
-// SPDX-FileCopyright 2021 Nguyen Dao
+// SPDX-FileCopyright 2021 Efabless Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,8 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 // SPDX-License-Identifier: Apache-2.0
+
 module Frame_Data_Reg_0 (FrameData_I, FrameData_O, RowSelect, CLK);
 	parameter FrameBitsPerRow = 32;
 	parameter RowSelectWidth = 5;

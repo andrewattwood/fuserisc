@@ -1,4 +1,4 @@
-// SPDX-FileCopyright 2021 Nguyen Dao
+// SPDX-FileCopyrightText: 2020 Nguyen Dao
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,8 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 // SPDX-License-Identifier: Apache-2.0
+
+
 module N_term_single (N1END, N2MID, N2END, N4END, NN4END, Ci, S1BEG, S2BEG, S2BEGb, S4BEG, SS4BEG, FrameData, FrameData_O, FrameStrobe, FrameStrobe_O);
 	parameter MaxFramesPerCol = 20;
 	parameter FrameBitsPerRow = 32;
