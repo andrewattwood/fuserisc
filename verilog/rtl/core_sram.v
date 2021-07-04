@@ -103,7 +103,7 @@ module core_sram (
     output eFPGA_en_o,
     output [1:0] eFPGA_operator_o,
     output [3:0] eFPGA_delay_o,
-    input [31:0]ext_data_addr_i,
+    input [9:0]ext_data_addr_i,
     input [3:0]ext_data_be_i,
     output [31:0]ext_data_rdata_o,
     input ext_data_req_i,

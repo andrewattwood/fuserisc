@@ -16,7 +16,7 @@
 set script_dir [file dirname [file normalize [info script]]]
 
 
-
+set ::env(MAGIC_DRC_USE_GDS) 0
 
 set ::env(DESIGN_NAME) core_sram
 
@@ -136,7 +136,7 @@ set ::env(SYNTH_MAX_FANOUT) 4
 
 #set ::env(CLOCK_TREE_SYNTH) 0
 
-#set ::env(PDN_CFG) $script_dir/pdn.tcl
+set ::env(PDN_CFG) $script_dir/pdn.tcl
 
 #set ::env(FP_PIN_ORDER_CFG) $script_dir/pin_order.cfg
 set ::env(FP_SIZING) absolute
