@@ -4162,16 +4162,25 @@ module ram (
 	assign data_we_i = (ext_data_req_i ? ext_data_we_i : ibex_data_we_i);
 	assign data_be_i = (ext_data_req_i ? ext_data_be_i : ibex_data_be_i);
 	assign ibex_data_gnt_o = !ext_data_req_i & ibex_data_req_i;
+	wire not_data_req_i;
+	wire not_data_we_i;
+	wire not_instr_req_i;
+	assign not_data_req_i = ~data_req_i;
+        assign not_data_we_i = ~data_we_i;
+        assign not_instr_req_i = ~instr_req_i;
+
+	
+
 	sky130_sram_1kbyte_1rw1r_32x256_8 sram_i(
 		.clk0(clk),
-		.csb0(!data_req_i),
-		.web0(!data_be_i),
+		.csb0(not_data_req_i),
+		.web0(not_data_we_i),
 		.wmask0(data_be_i),
 		.addr0(data_addr_i),
 		.din0(data_wdata_i),
 		.dout0(data_rdata_o),
 		.clk1(clk),
-		.csb1(!instr_addr_i),
+		.csb1(not_instr_req_i),
 		.addr1(instr_addr_i),
 		.dout1(instr_rdata_o)
 	);
