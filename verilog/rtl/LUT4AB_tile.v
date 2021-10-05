@@ -2273,7 +2273,8 @@ module LUT4AB (N1BEG, N2BEG, N2BEGb, N4BEG, NN4BEG, Co, N1END, N2MID, N2END, N4E
 	.J_l_GH_BEG2(J_l_GH_BEG[2]),
 	.J_l_GH_BEG3(J_l_GH_BEG[3]),
 	.ConfigBits(ConfigBits[586-1:146]),
-	.ConfigBits_N(ConfigBits[586-1:146])
-	);
+	.ConfigBits_N(ConfigBits[586-1:146]),
+.ConfigBits_N(ConfigBits_N)
+);
 
 endmodule

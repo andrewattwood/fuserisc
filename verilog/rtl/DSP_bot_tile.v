@@ -2207,7 +2207,8 @@ module DSP_bot (N1BEG, N2BEG, N2BEGb, N4BEG, NN4BEG, bot2top, N1END, N2MID, N2EN
 	.J_l_GH_BEG2(J_l_GH_BEG[2]),
 	.J_l_GH_BEG3(J_l_GH_BEG[3]),
 	.ConfigBits(ConfigBits[416-1:6]),
-	.ConfigBits_N(ConfigBits[416-1:6])
-	);
+	.ConfigBits_N(ConfigBits[416-1:6]),
+.ConfigBits_N(ConfigBits_N)
+);
 
 endmodule
